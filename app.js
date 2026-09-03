@@ -188,6 +188,10 @@ function createDataset(csvText, filename) {
       const entry =
         getValue(
           row,
+          "mates_entry",
+          "mate_entry",
+          "mates_log",
+          "mate_log",
           "entry",
           "transcription",
           "description",
