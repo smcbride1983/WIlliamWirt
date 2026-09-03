@@ -1,76 +1,142 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>William Wirt Voyage Archive</title>
-    <link rel="stylesheet" href="./styles.css" />
-  </head>
-
-  <body>
-    <header class="top-bar">
-      <div>
-        <small>William Wirt voyage archive</small>
-        <h1>Voyages &amp; account books</h1>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>William Wirt Voyage Archive</title>
+  <style>
+    :root { --ink:#17343a; --paper:#fffaf0; --rust:#b65738; --gold:#d7a94b; --line:#d8cdb9; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:#d9e1dc; color:var(--ink); font-family:Georgia,serif; }
+    button,input,select { font-family:Arial,sans-serif; }
+    .top { padding:16px 24px; background:var(--ink); color:white; border-bottom:4px solid var(--gold); display:flex; justify-content:space-between; align-items:center; }
+    .top h1 { margin:0; font-size:22px; font-weight:500; }
+    .top small { font:700 10px Arial; letter-spacing:.16em; text-transform:uppercase; color:#b8cac8; }
+    .upload { background:var(--gold); color:var(--ink); padding:10px 15px; border-radius:99px; font-weight:bold; cursor:pointer; }
+    .bar { padding:10px 24px; background:var(--paper); display:flex; justify-content:space-between; gap:10px; border-bottom:1px solid #c8bda8; }
+    .bar input,.bar select { padding:8px 10px; border:1px solid #b9ad98; border-radius:7px; background:white; }
+    .bar select { min-width:280px; }
+    .bar input { min-width:220px; }
+    .remove { border:0; background:none; color:#8a4534; }
+    .status { display:none; padding:8px 24px; background:#f3e7c7; font:600 12px Arial; }
+    .status.visible { display:block; }
+    .workspace { height:calc(100vh - 132px); display:grid; grid-template-columns:minmax(0,1.55fr) minmax(330px,.7fr); gap:16px; padding:16px; }
+    .panel { background:var(--paper); border:1px solid #c8bda8; border-radius:17px; box-shadow:0 7px 25px #17343a12; }
+    .main { padding:18px; display:flex; flex-direction:column; min-height:0; }
+    .heading { display:flex; justify-content:space-between; gap:12px; align-items:start; }
+    .heading h2 { margin:0; font-size:19px; }
+    .heading p { margin:4px 0; font:12px Arial; color:#6d7a78; }
+    .tabs { display:flex; flex-wrap:wrap; background:#e6ece8; border-radius:9px; padding:3px; }
+    .tabs button { border:0; background:none; padding:7px 11px; border-radius:7px; font-weight:bold; color:#536966; }
+    .tabs button.active { background:var(--ink); color:white; }
+    .legend,.encounter-filters { display:flex; flex-wrap:wrap; gap:14px; margin-top:8px; font:11px Arial; }
+    .encounter-filters { padding:8px 10px; background:#eef2ed; border-radius:7px; }
+    .dot { display:inline-block; width:12px; height:12px; border:2px solid var(--ink); border-radius:50%; }
+    .star { color:var(--gold); font-size:18px; }
+    .view { flex:1; min-height:340px; overflow:hidden; border-radius:14px; margin-top:8px; position:relative; }
+    .map { position:absolute; inset:0; background:#b7d5e8; cursor:grab; touch-action:none; overflow:hidden; }
+    .map.dragging { cursor:grabbing; }
+    .tiles,.overlay { position:absolute; inset:0; width:100%; height:100%; }
+    .tile { position:absolute; width:256px; height:256px; user-select:none; pointer-events:none; }
+    .route-underlay { stroke:var(--paper); stroke-width:7; vector-effect:non-scaling-stroke; }
+    .route-segment { stroke:var(--rust); stroke-width:3; vector-effect:non-scaling-stroke; }
+    .route-segment.estimated { stroke-dasharray:7 5; }
+    .map-marker { cursor:pointer; }
+    .map-marker circle,.map-marker polygon { fill:var(--paper); stroke:var(--ink); stroke-width:2; vector-effect:non-scaling-stroke; }
+    .map-marker.selected circle,.map-marker.selected polygon { fill:var(--ink); stroke:var(--gold); stroke-width:3; }
+    .map-marker.estimated circle { stroke-dasharray:3 2; }
+    .map-marker text { font:700 9px Arial; fill:var(--ink); text-anchor:middle; pointer-events:none; }
+    .map-marker.selected text { fill:white; }
+    .port-count { paint-order:stroke; stroke:var(--paper); stroke-width:3px; }
+    .encounter-marker { cursor:pointer; }
+    .encounter-marker circle { stroke:white; stroke-width:2.5; vector-effect:non-scaling-stroke; }
+    .encounter-marker.ships circle { fill:#277da1; }
+    .encounter-marker.whales circle { fill:#7656a3; }
+    .encounter-marker.animals circle { fill:#4f772d; }
+    .encounter-marker.plants circle { fill:#2a9d70; }
+    .encounter-marker.combined circle { fill:#d17b28; }
+    .encounter-marker.estimated circle { stroke-dasharray:3 2; }
+    .encounter-marker.selected circle { stroke:var(--gold); stroke-width:4; }
+    .map-help,.map-attribution { position:absolute; z-index:3; background:#fffaf0e8; padding:5px 8px; border-radius:5px; font:10px Arial; }
+    .map-help { right:9px; top:8px; }
+    .map-attribution { right:3px; bottom:3px; }
+    .calendar { overflow:auto; padding:10px 2px; }
+    .month { margin-bottom:22px; }
+    .month h3 { margin:0 0 8px; }
+    .weekday-row,.days { display:grid; grid-template-columns:repeat(7,minmax(62px,1fr)); gap:5px; }
+    .weekday-row span { font:700 9px Arial; text-transform:uppercase; color:#788986; padding:4px; }
+    .day { min-height:76px; border:1px solid #d5cbb8; background:#fffdf7; border-radius:7px; padding:7px; text-align:left; color:var(--ink); }
+    .day.missing { background:#f1ede3; color:#999; border-style:dashed; }
+    .day.active { outline:3px solid var(--gold); }
+    .day.blank { visibility:hidden; }
+    .day b,.day span { display:block; }
+    .day span { font:11px/1.25 Arial; margin-top:7px; }
+    .record-strip { display:flex; overflow-x:auto; gap:5px; padding-top:7px; }
+    .record-strip button { min-width:58px; border:0; border-top:2px solid #c9d2ce; background:none; padding:7px 3px; color:#70817f; }
+    .record-strip button.active { border-color:var(--rust); color:var(--rust); }
+    .record-strip b,.record-strip span { display:block; }
+    .record-strip span { font-size:10px; }
+    .details { padding:21px; overflow-y:auto; }
+    .record-nav { display:flex; justify-content:space-between; align-items:center; font:700 10px Arial; text-transform:uppercase; color:#7c8987; }
+    .record-nav button { border:1px solid var(--line); background:var(--paper); border-radius:50%; width:30px; height:30px; }
+    .record-nav button:disabled { opacity:.25; }
+    .eyebrow { font:700 10px Arial; text-transform:uppercase; letter-spacing:.17em; color:var(--rust); margin:18px 0 6px; }
+    .details h2 { margin:0; font-size:27px; }
+    .coordinate-labels { display:flex; flex-wrap:wrap; gap:7px; margin:11px 0 16px; }
+    .coordinate-labels span { background:#e6ece8; padding:5px 8px; border-radius:4px; font:600 11px Arial; }
+    .metrics { display:grid; grid-template-columns:repeat(3,1fr); border-block:1px solid var(--line); padding:13px 0; gap:8px; }
+    .metrics small { display:block; font:9px Arial; text-transform:uppercase; color:#7c8987; }
+    .metrics b { font:600 14px Arial; }
+    .observations { margin:14px 0; font:12px/1.5 Arial; }
+    .observations b { display:block; }
+    .editorial-note,.estimate-note,.port-visit { background:#eee5d3; border-left:3px solid var(--gold); padding:11px; }
+    .port-date-list { display:flex; flex-wrap:wrap; gap:5px; margin-top:8px; }
+    .port-date-list button { border:1px solid var(--line); background:white; border-radius:5px; padding:4px 6px; }
+    .port-date-list button.active { background:var(--ink); color:white; }
+    .entry { border-top:1px solid var(--line); margin-top:15px; padding-top:14px; }
+    .entry h3 { font:700 11px Arial; text-transform:uppercase; }
+    .entry blockquote { border-left:1px solid #b7a98e; margin:0; padding-left:13px; line-height:1.55; font-size:14px; white-space:pre-wrap; }
+    .logbook-scan { margin:1rem 0 0; }
+    .logbook-scan img { display:block; width:100%; max-height:500px; object-fit:contain; background:#eee8dc; border:1px solid #c8bda9; border-radius:6px; cursor:zoom-in; }
+    .logbook-scan figcaption { margin-top:.5rem; color:#6a6258; font:12px/1.4 Arial; }
+    .empty-state { height:100%; display:grid; place-content:center; text-align:center; color:#627673; padding:24px; }
+    @media(max-width:850px) { .workspace{height:auto;grid-template-columns:1fr}.main{height:72vh;min-height:560px}.details{overflow:visible}.bar{flex-wrap:wrap} }
+    @media(max-width:600px) { .top{padding:14px}.bar{padding:9px 14px}.bar input,.bar select{width:100%;min-width:0}.workspace{padding:8px}.main{padding:10px}.heading{flex-wrap:wrap}.weekday-row,.days{grid-template-columns:repeat(7,minmax(43px,1fr))}.day{min-height:62px;padding:5px}.day span{font-size:9px} }
+  </style>
+</head>
+<body>
+  <header class="top">
+    <div><small>Maritime records workspace</small><h1>William Wirt Voyage Archive</h1></div>
+    <label class="upload">Upload CSVs<input id="files" type="file" accept=".csv,text/csv" multiple hidden /></label>
+  </header>
+  <div id="status" class="status"></div>
+  <div class="bar">
+    <div><select id="source" aria-label="Source"></select><button id="remove" class="remove" type="button">Remove source</button></div>
+    <input id="search" type="search" placeholder="Search this source" />
+  </div>
+  <main class="workspace">
+    <section class="panel main">
+      <div class="heading">
+        <div><h2 id="title">Loading logbook…</h2><p id="subtitle">Coordinates will be mapped automatically.</p></div>
+        <div class="tabs" aria-label="Views">
+          <button id="map-tab" class="active" type="button">Voyage map</button>
+          <button id="encounters-tab" type="button">Encounters map</button>
+          <button id="calendar-tab" type="button">Calendar</button>
+        </div>
       </div>
-
-      <!-- The published CSV loads automatically. This remains useful for testing. -->
-      <label class="upload-button">
-        Upload another CSV
-        <input id="files" type="file" accept=".csv,text/csv" multiple hidden />
-      </label>
-    </header>
-
-    <div id="status" class="status" role="status"></div>
-
-    <div class="toolbar">
-      <div>
-        <label class="screen-reader-only" for="source">Source</label>
-        <select id="source"></select>
-        <button id="remove" class="text-button" type="button">Remove source</button>
-      </div>
-
-      <label class="screen-reader-only" for="search">Search this source</label>
-      <input id="search" type="search" placeholder="Search this source" />
-    </div>
-
-    <main class="workspace">
-      <section class="panel main-panel">
-        <div class="heading">
-          <div>
-            <h2 id="title">Loading the voyage…</h2>
-            <p id="subtitle">The published CSV will load automatically.</p>
-          </div>
-
-          <div class="tabs" aria-label="Primary view">
-            <button id="map-tab" class="active" type="button">Voyage map</button>
-            <button id="calendar-tab" type="button">Calendar</button>
-          </div>
-        </div>
-
-        <div id="legend" class="legend">
-          <span><i class="legend-dot recorded"></i> Recorded position</span>
-          <span><i class="legend-dot estimated"></i> Estimated position</span>
-          <span><i class="legend-star">★</i> Port visit</span>
-        </div>
-
-        <div id="view" class="view empty-state">
-          <div>
-            <h2>Loading voyage data</h2>
-            <p>Please wait a moment.</p>
-          </div>
-        </div>
-
-        <div id="record-strip" class="record-strip"></div>
-      </section>
-
-      <aside id="details" class="panel details-panel">
-        <div class="empty-state">
-          <p>Select a record.</p>
-        </div>
-      </aside>
-    </main>
-
-    <script src="./app.js"></script>
-  </body>
+      <div id="legend" class="legend"><span><i class="dot"></i> At sea</span><span><i class="star">★</i> Port visit</span></div>
+      <fieldset id="encounter-filters" class="encounter-filters" hidden>
+        <legend>Show encounters</legend>
+        <label><input type="checkbox" data-encounter-filter="ships" checked /> Ships</label>
+        <label><input type="checkbox" data-encounter-filter="whales" checked /> Whales</label>
+        <label><input type="checkbox" data-encounter-filter="animals" checked /> Other animals</label>
+        <label><input type="checkbox" data-encounter-filter="plants" checked /> Plants</label>
+      </fieldset>
+      <div id="view" class="view empty-state"><div><h2>Loading source</h2><p>Reading data/logbook1.csv</p></div></div>
+      <div id="record-strip" class="record-strip"></div>
+    </section>
+    <aside id="details" class="panel details"><div class="empty-state"><p>Select a record.</p></div></aside>
+  </main>
+  <script src="app.js"></script>
+</body>
 </html>
